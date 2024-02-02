@@ -39,7 +39,7 @@ namespace HausMeterApp.Tests
         {
             var meterType = MeterBase.MeterType.Power;
             var meter = new MeterInMemory("meterAdress", meterType);
-            Assert.That(() => meter.AddMeterReading(0.001f), Throws.Exception.With.Message.EqualTo($"the meter reading must have a maximum of 2 decimal places"));
+            Assert.That(() => meter.AddMeterReading(0.001f), Throws.Exception.With.Message.EqualTo($"the meter reading must have a maximum of 1 decimal places"));
         }
         
         [Test]
@@ -47,7 +47,7 @@ namespace HausMeterApp.Tests
         {
             var meterType = MeterBase.MeterType.WaterCold;
             var meter = new MeterInMemory("meterAdress", meterType);
-            Assert.That(() => meter.AddMeterReading(0.01f), Throws.Exception.With.Message.EqualTo($"the meter reading must have a maximum of 1 decimal places"));
+            Assert.That(() => meter.AddMeterReading(0.001f), Throws.Exception.With.Message.EqualTo($"the meter reading must have a maximum of 2 decimal places"));
         }
     }
 }
