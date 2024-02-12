@@ -4,7 +4,7 @@
     {
         public string FileName { get; private set; }
 
-        public MeterInFile(string address, MeterType typeMeter) : base(address, typeMeter)
+        public MeterInFile(string address, MeterTypes.MeterType typeMeter) : base(address, typeMeter)
         {
             this.FileName = $"Haus_{address.Replace(" ","_")}_{typeMeter}.txt"; 
         }
@@ -13,18 +13,9 @@
 
         public override void AddMeterReading(float meterReading)
         {
-            int meterPrecision = 0;
-            if (Math.Round(meterReading) != meterReading)
-            {
-                var meterReadingString = meterReading.ToString();  //decimal symbol is not dot. it is comma
-                string decimalSeparator = meterReading.ToString().Contains(".") ? "." : ",";
-                var meterReadingSplit = meterReadingString.Split(decimalSeparator);
-                meterPrecision = meterReadingSplit[1].Length;
-            }
-
             if (meterReading >= 0)
             {
-                if (meterPrecision <= MeterMaxPrecision)
+                if (GetMeterReadingPrecision(meterReading) <= MeterMaxPrecision)
                 {
                     using (var writer = File.AppendText($"{this.FileName}"))
                     {
@@ -46,31 +37,20 @@
             }
         }
 
-        public override void AddMeterReading(double meterReading)
-        {
-            float valueFloat = (float)meterReading;
-            AddMeterReading(valueFloat);
-        }
-
-        public override void AddMeterReading(string meterReading)
-        {
-            if (float.TryParse(meterReading, out float valueFloat))
-            {
-                AddMeterReading(valueFloat);
-            }
-            else
-            {
-                throw new Exception("string is not float value");
-            }
-        }
-
         public override Statistics GetStatistics()
         {
-            var meterReadingsFromFile = this.MeterReadingsFromFile();
             var statistics = new Statistics();
-            foreach (var meterReading in meterReadingsFromFile)
+            try
             {
-                statistics.AddMeterReading(meterReading);
+                var meterReadingsFromFile = this.MeterReadingsFromFile();
+                foreach (var meterReading in meterReadingsFromFile)
+                {
+                    statistics.AddMeterReading(meterReading);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"File \"{this.FileName}\" not found");
             }
             return statistics;
         }

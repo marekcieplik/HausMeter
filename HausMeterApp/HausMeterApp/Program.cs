@@ -3,7 +3,8 @@ using static HausMeterApp.MeterBase;
 
 Console.WriteLine("App: HausMeter statistics ");
 Console.WriteLine("==========================");
-MeterSet meterSet = new MeterSet("NoAddress", MeterType.Undef);
+MeterSet meterSet = SetMeterParameters();
+
 bool CloseApp = false;
 while (!CloseApp)
 {
@@ -16,10 +17,10 @@ while (!CloseApp)
     switch (userInput)
     {
         case "1":            
-            AddMeterReadingToTxtFile(meterSet.Address, meterSet.TypeMeter);
+            AddMeterReading(true, meterSet.Address, meterSet.TypeMeter);
             break;
         case "2":
-            AddMeterReadingToMemory(meterSet.Address, meterSet.TypeMeter); 
+            AddMeterReading(false, meterSet.Address, meterSet.TypeMeter); 
             break;
         case "0":
             meterSet = SetMeterParameters();
@@ -34,48 +35,9 @@ while (!CloseApp)
     }
 }
 
-void AddMeterReadingToMemory(string address, MeterBase.MeterType typeMeter)
+void AddMeterReading(bool isInFile, string address, MeterTypes.MeterType typeMeter)
 {
-    var meter = new MeterInMemory(address, typeMeter);
-    meter.MeterReadingAdded += MeterReadingAdded;
-    string input;
-    do
-    {
-        Console.WriteLine("Add meter reading, or 'q' - quit, or 's' - statistics");
-        input = Console.ReadLine();
-        if (input.ToLower() == "q")
-        {
-            break;
-        }
-        else if (input.ToLower() == "s")
-        {
-            var statistics = meter.GetStatistics();
-            Console.WriteLine($"Haus  a d d r e s s: {meter.Address}");
-            Console.WriteLine($"M e t e r   t y p e: {meter.TypeMeter}");
-            Console.WriteLine($"Meter Max Precision: {meter.MeterMaxPrecision}");
-            Console.WriteLine($"Max  Meter  Reading: {statistics.Max}");
-            Console.WriteLine($"Min  Meter  Reading: {statistics.Min}");
-            Console.WriteLine($"Average Consumption in {statistics.Count} mounths: {Math.Round(statistics.Average,meter.MeterMaxPrecision)}");
-        }
-        else
-        {
-            try
-            {
-                meter.AddMeterReading(input);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                continue;
-            }
-        }
-    }
-    while(true);
-}
-
-void AddMeterReadingToTxtFile(string address, MeterType typeMeter)
-{
-    var meter = new MeterInFile(address, typeMeter );
+    IMeter meter = (isInFile) ? new MeterInFile(address, typeMeter ): new MeterInMemory(address,typeMeter);
     meter.MeterReadingAdded += MeterReadingAdded;
     string input;
     do
@@ -93,9 +55,12 @@ void AddMeterReadingToTxtFile(string address, MeterType typeMeter)
             Console.WriteLine($"Haus  a d d r e s s: {meter.Address}");
             Console.WriteLine($"M e t e r   t y p e: {meter.TypeMeter}");
             Console.WriteLine($"Meter Max Precision: {meter.MeterMaxPrecision}");
-            Console.WriteLine($"Min  Meter  Reading: {statistics.Min}");
-            Console.WriteLine($"Max  Meter  Reading: {statistics.Max}");
-            Console.WriteLine($"Average Consumption in {statistics.Count} mounths: {Math.Round(statistics.Average, meter.MeterMaxPrecision)}");
+            if (statistics.Count > 0 )
+            {
+                Console.WriteLine($"Min  Meter  Reading: {statistics.Min}");
+                Console.WriteLine($"Max  Meter  Reading: {statistics.Max}");
+                Console.WriteLine($"Average Consumption in {statistics.Count} mounths: {Math.Round(statistics.Average, meter.MeterMaxPrecision)}");
+            }
         }
         else
         {
@@ -119,44 +84,63 @@ void MeterReadingAdded(object sender, EventArgs args)
 
 MeterSet SetMeterParameters()
 {
-    Console.WriteLine("Enter Haus Address:");
-    var meterAddress = "NoAddress";
-    var typeMeter = MeterType.Undef;
-    meterAddress = Console.ReadLine();
     List<string> MeterTypesText = new List<string>
     {
-        "q",
-        "Q"
+            "q",
+            "Q"
     };
-    foreach (MeterBase.MeterType typeM in Enum.GetValues(typeof(MeterBase.MeterType)))
+    foreach (MeterTypes.MeterType typeM in Enum.GetValues(typeof(MeterTypes.MeterType)))
     {
         MeterTypesText.Add(typeM.ToString());
     }
-    string inputText;
-    do
-    {
-        Console.WriteLine("Enter Meter Type:");
-        foreach (MeterBase.MeterType typeM in Enum.GetValues(typeof(MeterBase.MeterType)))
-        {
-            Console.WriteLine(typeM);
-        }
-        inputText = Console.ReadLine();
-    } while (!MeterTypesText.Contains(inputText));
-
-    typeMeter = (MeterBase.MeterType)Enum.Parse(typeof(MeterBase.MeterType), inputText);
-
+    
+    var meterAddress = "NoAddress";
+    var typeMeter = MeterTypes.MeterType.Undef;
+    bool containsLettersOrDigits = false;
     var meterSet = new MeterSet(meterAddress, typeMeter);
+    while (meterSet.Address == "NoAddress" || meterSet.TypeMeter == MeterTypes.MeterType.Undef)
+    {
+        do
+        {
+            Console.WriteLine("Enter Haus Address:");
+            meterAddress = Console.ReadLine();
+            containsLettersOrDigits = false;
+            if (meterAddress != null)
+            {
+                foreach (char c in meterAddress)
+                {
+                    if (Char.IsLetterOrDigit(c))
+                    {
+                        containsLettersOrDigits = true;
+                        break;
+                    }
+                }
+            }
+        } while (!containsLettersOrDigits);
+        meterSet.Address = meterAddress;
+        string inputText;
+        do
+        {
+            Console.WriteLine("Enter Meter Type:");
+            foreach (MeterTypes.MeterType typeM in Enum.GetValues(typeof(MeterTypes.MeterType)))
+            {
+                Console.WriteLine(typeM);
+            }
+            inputText = Console.ReadLine();
+        } while (!MeterTypesText.Contains(inputText));
+        meterSet.TypeMeter = (MeterTypes.MeterType)Enum.Parse(typeof(MeterTypes.MeterType), inputText);
+    }    
         
     return meterSet;
 }
 
 class MeterSet
 {
-    public MeterType TypeMeter { get; private set; }
+    public MeterTypes.MeterType TypeMeter { get; set; }
 
-    public string Address { get; private set; }
+    public string Address { get; set; }
     
-    public MeterSet(string address, MeterBase.MeterType typeMeter)
+    public MeterSet(string address, MeterTypes.MeterType typeMeter)
     {
         this.Address = address;
         this.TypeMeter = typeMeter;

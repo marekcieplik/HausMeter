@@ -1,9 +1,12 @@
 ﻿using static HausMeterApp.MeterBase;
+using static HausMeterApp.MeterTypes;
 namespace HausMeterApp
 {
     public interface IMeter
     {
         MeterType TypeMeter { get; }
+
+        int MeterMaxPrecision { get; }
 
         string Address { get; }
         
